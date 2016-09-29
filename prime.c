@@ -17,19 +17,79 @@
 #include <stdbool.h>
 #include <unistd.h>     // for usleep()
 #include <time.h>       // for time()
+#include <math.h>
 
 #include "prime.h"
 
 static void rsleep (int t);
+void sieveOnce(int i);
+void printAll();
+bool checkBuffer(unsigned long i);
 
 int main (void)
 {
     // TODO: start threads generate all primes between 2 and NROF_SIEVE and output the results
     // (see thread_malloc_free_test() and thread_mutex_test() how to use threads and mutexes,
     //  see bit_test() how to manipulate bits in a large integer)
-
-
+	int i;
+	//Set all bits to 1
+	for(i=0; i < (NROF_SIEVE/64) + 1; i++){
+		buffer[i] = ~0;
+		//printf("%llu\n", buffer[i]);
+	}
+	//Check for non primes
+	for(i = 2; i < sqrt(NROF_SIEVE); i++){
+		if(checkBuffer(i)){
+			sieveOnce(i);
+			printf("Removed all multiples of %d\n", i);
+		}
+	}
+	printAll();
     return (0);
+}
+
+
+
+void sieveOnce(int i){
+	int curr;
+	for(curr = i * i; curr < NROF_SIEVE; curr += i){
+		unsigned long location = curr / 64;
+		unsigned int index = curr % 64;
+		unsigned long long mask = ~0;
+		mask &= ~(1 << index);
+		//printf("The mask was set to %llu\n", mask);
+		buffer[location] &= mask;
+		printf("Just removed %d from the list\n", curr);
+	}
+}
+
+void printAll(){
+	unsigned long i;
+	for(i = 2; i < NROF_SIEVE; i++){
+		if(checkBuffer(i)){
+			printf("%lu\n", i);
+		}
+	}
+}
+
+/*
+ * checkBuffer(int i)
+ *
+ * Returns if i is currently considered a prime number
+ */
+bool checkBuffer(unsigned long i){
+	unsigned long location = i / 64;
+	unsigned int index = i % 64;
+	unsigned long long data = buffer[location];
+	data &= 1 << index;
+	data = data >> index;
+	if(data == 1){
+		//printf("%lu is still considered a prime number\n", i);
+		return true;
+	} else {
+		printf("%lu is not a prime number\n", i);
+		return false;
+	}
 }
 
 /*

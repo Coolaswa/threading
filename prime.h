@@ -10,8 +10,9 @@
 /**
  * NROF_SIEVE: size of the sieve
  * (value must be between 1 and 15485864 (such that primes.txt can be used for checking))
+ * default 4000
  */
-#define NROF_SIEVE          4000
+#define NROF_SIEVE          40
 
 /**
  * NROF_THREADS: number of threads that will run in parallel (only for assignment "Threaded Application")
