@@ -59,7 +59,7 @@ void sieveOnce(int i){
 		mask &= ~(1 << index);
 		//printf("The mask was set to %llu\n", mask);
 		buffer[location] &= mask;
-		printf("Just removed %d from the list\n", curr);
+		//printf("Just removed %d from the list\n", curr);
 	}
 }
 
@@ -79,12 +79,15 @@ void printAll(){
  */
 bool checkBuffer(unsigned long i){
 	unsigned long location = i / 64;
+	printf("Buffer index is %lu\n", location);
 	unsigned int index = i % 64;
+	printf("Index in the long long is %d\n", index);
 	unsigned long long data = buffer[location];
+	printf("The long long is %llu\n", data);
 	data &= 1 << index;
-	data = data >> index;
-	if(data == 1){
-		//printf("%lu is still considered a prime number\n", i);
+	printf("Checking buffer resulted in %llu\n", data);
+	if(data > 0){
+		printf("%lu is still considered a prime number\n", i);
 		return true;
 	} else {
 		printf("%lu is not a prime number\n", i);
