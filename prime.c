@@ -34,7 +34,7 @@ int main (void)
 	int i;
 	//Set all bits to 1
 	for(i=0; i < (NROF_SIEVE/64) + 1; i++){
-		buffer[i] = ~0;
+		buffer[i] = ~0ULL;
 		//printf("%llu\n", buffer[i]);
 	}
 	//Check for non primes
@@ -54,9 +54,11 @@ void sieveOnce(int i){
 	int curr;
 	for(curr = i * i; curr < NROF_SIEVE; curr += i){
 		unsigned long location = curr / 64;
-		unsigned int index = curr % 64;
-		unsigned long long mask = ~0;
-		mask &= ~(1 << index);
+		unsigned long index = curr % 64;
+		//printf("Sieving index is %lu\n", index);
+		unsigned long long mask = ~0ULL;
+		mask &= (unsigned long long)~(1ULL << index);
+		//printf("The index was set to %llu\n", (unsigned long long)(1 << index));
 		//printf("The mask was set to %llu\n", mask);
 		buffer[location] &= mask;
 		//printf("Just removed %d from the list\n", curr);
@@ -79,18 +81,19 @@ void printAll(){
  */
 bool checkBuffer(unsigned long i){
 	unsigned long location = i / 64;
-	printf("Buffer index is %lu\n", location);
-	unsigned int index = i % 64;
-	printf("Index in the long long is %d\n", index);
+	//printf("Buffer index is %lu\n", location);
+	unsigned long index = i % 64;
+	//printf("Index in the long long is %lu\n", index);
 	unsigned long long data = buffer[location];
-	printf("The long long is %llu\n", data);
-	data &= 1 << index;
-	printf("Checking buffer resulted in %llu\n", data);
+	//printf("The long long is %llu\n", data);
+	data &= (unsigned long long)(1ULL << index);
+	//printf("The mask is %llu\n",(unsigned long long)(1ULL<<index));
+	//printf("Checking buffer resulted in %llu\n", data);
 	if(data > 0){
-		printf("%lu is still considered a prime number\n", i);
+		//printf("%lu is still considered a prime number\n", i);
 		return true;
 	} else {
-		printf("%lu is not a prime number\n", i);
+		//printf("%lu is not a prime number\n", i);
 		return false;
 	}
 }
