@@ -27,6 +27,8 @@ void * sieveOnce(void * j);
 void printAll();
 bool checkBuffer(unsigned long i);
 
+static pthread_mutex_t mutex[(NROF_SIEVE/64) + 1];
+
 int main (void)
 {
     // TODO: start threads generate all primes between 2 and NROF_SIEVE and output the results
@@ -46,11 +48,13 @@ int main (void)
 			int newThread = pthread_create(&thread_id, NULL, sieveOnce, (void*)&i);
 			if(newThread == -1){
 				perror("Creating a thread failed");
+				exit(1);
 			}
 			//printf("Waiting for a thread to finish\n");
 			int joinThread = pthread_join(thread_id, NULL);
 			if(joinThread == -1){
 				perror("Waiting for the thread resulted in an error");
+				exit(1);
 			}
 			//sieveOnce(i);
 			//printf("Removed all multiples of %d\n", i);
@@ -73,7 +77,9 @@ void * sieveOnce(void * j){
 		mask &= (unsigned long long)~(1ULL << index);
 		//printf("The index was set to %llu\n", (unsigned long long)(1 << index));
 		//printf("The mask was set to %llu\n", mask);
+		pthread_mutex_lock(&mutex[location]);
 		buffer[location] &= mask;
+		pthread_mutex_unlock(&mutex[location]);
 		//printf("Just removed %d from the list\n", curr);
 	}
 	return(NULL);
