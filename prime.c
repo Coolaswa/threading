@@ -18,11 +18,12 @@
 #include <unistd.h>     // for usleep()
 #include <time.h>       // for time()
 #include <math.h>
+#include <pthread.h>
 
 #include "prime.h"
 
 static void rsleep (int t);
-void sieveOnce(int i);
+void * sieveOnce(void * j);
 void printAll();
 bool checkBuffer(unsigned long i);
 
@@ -38,10 +39,21 @@ int main (void)
 		//printf("%llu\n", buffer[i]);
 	}
 	//Check for non primes
+	pthread_t thread_id;
 	for(i = 2; i < sqrt(NROF_SIEVE); i++){
 		if(checkBuffer(i)){
-			sieveOnce(i);
-			printf("Removed all multiples of %d\n", i);
+			//printf("Trying to create a new thread\n");
+			int newThread = pthread_create(&thread_id, NULL, sieveOnce, (void*)&i);
+			if(newThread == -1){
+				perror("Creating a thread failed");
+			}
+			//printf("Waiting for a thread to finish\n");
+			int joinThread = pthread_join(thread_id, NULL);
+			if(joinThread == -1){
+				perror("Waiting for the thread resulted in an error");
+			}
+			//sieveOnce(i);
+			//printf("Removed all multiples of %d\n", i);
 		}
 	}
 	printAll();
@@ -50,7 +62,8 @@ int main (void)
 
 
 
-void sieveOnce(int i){
+void * sieveOnce(void * j){
+	int i = *((int*)j);
 	int curr;
 	for(curr = i * i; curr < NROF_SIEVE; curr += i){
 		unsigned long location = curr / 64;
@@ -63,6 +76,7 @@ void sieveOnce(int i){
 		buffer[location] &= mask;
 		//printf("Just removed %d from the list\n", curr);
 	}
+	return(NULL);
 }
 
 void printAll(){
