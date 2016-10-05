@@ -27,6 +27,7 @@ void * sieveOnce(void * j);
 void printAll();
 bool checkBuffer(unsigned long i);
 
+pthread_mutex_t mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mutex[(NROF_SIEVE/64) + 1];
 
 int main (void)
@@ -34,32 +35,48 @@ int main (void)
     // TODO: start threads generate all primes between 2 and NROF_SIEVE and output the results
     // (see thread_malloc_free_test() and thread_mutex_test() how to use threads and mutexes,
     //  see bit_test() how to manipulate bits in a large integer)
+
 	int i;
+	for(i = 0; i < (NROF_SIEVE/64) + 1; i++) {
+		mutex[i] = mutexInitializer;
+	}
 	//Set all bits to 1
 	for(i=0; i < (NROF_SIEVE/64) + 1; i++){
 		buffer[i] = ~0ULL;
 		//printf("%llu\n", buffer[i]);
 	}
 	//Check for non primes
-	pthread_t thread_id;
-	for(i = 2; i < sqrt(NROF_SIEVE); i++){
+	pthread_t thread_id[NROF_THREADS];
+	//for(i = 2; i < sqrt(NROF_SIEVE); i++){
+	for(i = 2; i < NROF_THREADS && i < sqrt(NROF_SIEVE); i++){
 		if(checkBuffer(i)){
 			//printf("Trying to create a new thread\n");
-			int newThread = pthread_create(&thread_id, NULL, sieveOnce, (void*)&i);
+			int * j = (int*)malloc(sizeof(int));
+			*j = i;
+			int newThread = pthread_create(&thread_id[*j - 2], NULL, sieveOnce, j);
 			if(newThread == -1){
 				perror("Creating a thread failed");
-				exit(1);
-			}
-			//printf("Waiting for a thread to finish\n");
-			int joinThread = pthread_join(thread_id, NULL);
-			if(joinThread == -1){
-				perror("Waiting for the thread resulted in an error");
 				exit(1);
 			}
 			//sieveOnce(i);
 			//printf("Removed all multiples of %d\n", i);
 		}
-	}
+	}/*
+	while(i < sqrt(NROF_SIEVE)){
+		int joinThread = pthread_join(thread_id[], NULL);
+		if(joinThread != 0){
+			perror("Waiting for the thread resulted in an error");
+			exit(1);
+		}
+		printf("Removed all multiples of %d\n", i);
+		int newThread = pthread_create(&thread_id[], NULL, sieveOnce, (void*)&i);
+		if(newThread != 0){
+			perror("Creating a thread failed");
+			exit(1);
+		}
+		i++;
+	}*/
+	sleep(1); //This is a temporary solution to let all threads finish
 	printAll();
     return (0);
 }
@@ -68,10 +85,12 @@ int main (void)
 
 void * sieveOnce(void * j){
 	int i = *((int*)j);
+	//printf("i is: %d\n",i);
+	free(j);
 	int curr;
 	for(curr = i * i; curr < NROF_SIEVE; curr += i){
-		unsigned long location = curr / 64;
-		unsigned long index = curr % 64;
+		unsigned long location = curr / 64UL;
+		unsigned long index = curr % 64UL;
 		//printf("Sieving index is %lu\n", index);
 		unsigned long long mask = ~0ULL;
 		mask &= (unsigned long long)~(1ULL << index);
