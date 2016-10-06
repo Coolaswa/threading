@@ -115,7 +115,7 @@ void * sieveOnce(void * j){
 		//printf("Just removed %d from the list\n", curr);
 	}
 	pthread_mutex_lock(&countMutex);
-	if(currInt < NROF_SIEVE){ //Now all integers are tried, not just primes. This is not necessary, but unavoidable?
+	if(currInt < sqrt(NROF_SIEVE)){ //Now all integers are tried, not just primes. This is not necessary, but unavoidable?
 		createNewThread(++currInt);
 	}
 	pthread_mutex_unlock(&countMutex);
