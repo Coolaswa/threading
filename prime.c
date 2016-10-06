@@ -26,9 +26,15 @@ static void rsleep (int t);
 void * sieveOnce(void * j);
 void printAll();
 bool checkBuffer(unsigned long i);
+void createNewThread(int i);
+void writeAll();
+FILE *fp;
 
 pthread_mutex_t mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mutex[(NROF_SIEVE/64) + 1];
+pthread_t thread_id[NROF_SIEVE];
+int currInt;
+pthread_mutex_t countMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main (void)
 {
@@ -46,22 +52,17 @@ int main (void)
 		//printf("%llu\n", buffer[i]);
 	}
 	//Check for non primes
-	pthread_t thread_id[NROF_THREADS];
+
 	//for(i = 2; i < sqrt(NROF_SIEVE); i++){
-	for(i = 2; i < NROF_THREADS && i < sqrt(NROF_SIEVE); i++){
-		if(checkBuffer(i)){
-			//printf("Trying to create a new thread\n");
-			int * j = (int*)malloc(sizeof(int));
-			*j = i;
-			int newThread = pthread_create(&thread_id[*j - 2], NULL, sieveOnce, j);
-			if(newThread == -1){
-				perror("Creating a thread failed");
-				exit(1);
-			}
-			//sieveOnce(i);
+	pthread_mutex_lock(&countMutex);
+	for(currInt = 2; currInt <= NROF_THREADS + 1 && currInt <= sqrt(NROF_SIEVE); currInt++){
+		//if(checkBuffer(currInt)){ // This does not work anymore due to threading, but that causes some inefficiencies
+			createNewThread(currInt);
 			//printf("Removed all multiples of %d\n", i);
-		}
-	}/*
+		//}
+	}
+	pthread_mutex_unlock(&countMutex);
+	/*
 	while(i < sqrt(NROF_SIEVE)){
 		int joinThread = pthread_join(thread_id[], NULL);
 		if(joinThread != 0){
@@ -76,19 +77,31 @@ int main (void)
 		}
 		i++;
 	}*/
-	sleep(1); //This is a temporary solution to let all threads finish
+	sleep(3); //This is a temporary solution to let all threads finish
 	printAll();
+	writeAll();
     return (0);
 }
 
-
+void createNewThread(int i){
+	//printf("Trying to create a new thread\n");
+	int * j = (int*)malloc(sizeof(int));
+	*j = i;
+	int newThread = pthread_create(&thread_id[*j - 2], NULL, sieveOnce, j);
+	if(newThread == -1){
+		perror("Creating a thread failed");
+		exit(1);
+	}
+	return;
+}
 
 void * sieveOnce(void * j){
 	int i = *((int*)j);
 	//printf("i is: %d\n",i);
 	free(j);
 	int curr;
-	for(curr = i * i; curr < NROF_SIEVE; curr += i){
+	for(curr = i * i; curr <= NROF_SIEVE; curr += i){
+		rsleep(100);
 		unsigned long location = curr / 64UL;
 		unsigned long index = curr % 64UL;
 		//printf("Sieving index is %lu\n", index);
@@ -101,6 +114,11 @@ void * sieveOnce(void * j){
 		pthread_mutex_unlock(&mutex[location]);
 		//printf("Just removed %d from the list\n", curr);
 	}
+	pthread_mutex_lock(&countMutex);
+	if(currInt < NROF_SIEVE){ //Now all integers are tried, not just primes. This is not necessary, but unavoidable?
+		createNewThread(++currInt);
+	}
+	pthread_mutex_unlock(&countMutex);
 	return(NULL);
 }
 
@@ -109,6 +127,16 @@ void printAll(){
 	for(i = 2; i < NROF_SIEVE; i++){
 		if(checkBuffer(i)){
 			printf("%lu\n", i);
+		}
+	}
+}
+
+void writeAll(){
+	fp = fopen("output.txt", "w");
+	unsigned long i;
+	for(i = 2; i <= NROF_SIEVE; i++){
+		if(checkBuffer(i)){
+			fprintf(fp, "%lu\n", i);
 		}
 	}
 }
