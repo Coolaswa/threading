@@ -32,7 +32,7 @@ FILE *fp;
 
 pthread_mutex_t mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mutex[(NROF_SIEVE/64) + 1];
-pthread_t thread_id[NROF_SIEVE];
+pthread_t thread_id;
 int currInt;
 pthread_mutex_t countMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -87,7 +87,7 @@ void createNewThread(int i){
 	//printf("Trying to create a new thread\n");
 	int * j = (int*)malloc(sizeof(int));
 	*j = i;
-	int newThread = pthread_create(&thread_id[*j - 2], NULL, sieveOnce, j);
+	int newThread = pthread_create(&thread_id, NULL, sieveOnce, j);
 	if(newThread == -1){
 		perror("Creating a thread failed");
 		exit(1);
