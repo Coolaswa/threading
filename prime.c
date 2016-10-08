@@ -2,8 +2,8 @@
  * Operating Systems   (2INCO)   Practical Assignment
  * Threaded Application
  *
- * STUDENT_NAME_1 (STUDENT_NR_1)
- * STUDENT_NAME_2 (STUDENT_NR_2)
+ * Michiel Favier (0951737)
+ * Diederik de Wit (0829667)
  *
  * Grading:
  * Students who hand in clean code that fully satisfies the minimum requirements will get an 8. 
@@ -26,15 +26,13 @@ static void rsleep (int t);
 void * sieveOnce(void * j);
 void printAll();
 bool checkBuffer(unsigned long i);
-void createNewThread(int i);
+void createNewThread(int i, int threadNumber);
 void writeAll();
 FILE *fp;
 
 pthread_mutex_t mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mutex[(NROF_SIEVE/64) + 1];
-pthread_t thread_id;
-int currInt;
-pthread_mutex_t countMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t thread_id[NROF_THREADS];
 
 int main (void)
 {
@@ -51,43 +49,40 @@ int main (void)
 		buffer[i] = ~0ULL;
 		//printf("%llu\n", buffer[i]);
 	}
-	//Check for non primes
 
-	//for(i = 2; i < sqrt(NROF_SIEVE); i++){
-	pthread_mutex_lock(&countMutex);
-	for(currInt = 2; currInt <= NROF_THREADS + 1 && currInt <= sqrt(NROF_SIEVE); currInt++){
-		//if(checkBuffer(currInt)){ // This does not work anymore due to threading, but that causes some inefficiencies
-			createNewThread(currInt);
-			//printf("Removed all multiples of %d\n", i);
-		//}
+	unsigned long currInt = 2;
+	while(currInt < sqrt(NROF_SIEVE)){
+		int threadsPlaced = 0;
+		for(i = 0; i < NROF_THREADS && currInt < sqrt(NROF_SIEVE); i++){
+			if(checkBuffer(currInt)){ // This rapidly becomes more efficient the more chunks have been processed, since the primes not found will become rarer
+				createNewThread(currInt, i);
+				threadsPlaced++;
+				//printf("Created new thread with integer %lu\n", currInt);
+			} else {
+				i--;
+			}
+			currInt++;
+		}
+		for(i = 0; i < NROF_THREADS && i < threadsPlaced; i++){
+			int joinThread = pthread_join(thread_id[i], NULL);
+			if(joinThread != 0){
+				perror("Waiting for the thread resulted in an error");
+				exit(1);
+			}
+			//printf("Just ended a thread\n");
+		}
 	}
-	pthread_mutex_unlock(&countMutex);
-	/*
-	while(i < sqrt(NROF_SIEVE)){
-		int joinThread = pthread_join(thread_id[], NULL);
-		if(joinThread != 0){
-			perror("Waiting for the thread resulted in an error");
-			exit(1);
-		}
-		printf("Removed all multiples of %d\n", i);
-		int newThread = pthread_create(&thread_id[], NULL, sieveOnce, (void*)&i);
-		if(newThread != 0){
-			perror("Creating a thread failed");
-			exit(1);
-		}
-		i++;
-	}*/
-	sleep(3); //This is a temporary solution to let all threads finish
+	//printf("Calculation done, starting to read results\n");
 	printAll();
 	writeAll();
     return (0);
 }
 
-void createNewThread(int i){
+void createNewThread(int i, int threadNumber){
 	//printf("Trying to create a new thread\n");
 	int * j = (int*)malloc(sizeof(int));
 	*j = i;
-	int newThread = pthread_create(&thread_id, NULL, sieveOnce, j);
+	int newThread = pthread_create(&thread_id[threadNumber], NULL, sieveOnce, j);
 	if(newThread == -1){
 		perror("Creating a thread failed");
 		exit(1);
@@ -114,17 +109,13 @@ void * sieveOnce(void * j){
 		pthread_mutex_unlock(&mutex[location]);
 		//printf("Just removed %d from the list\n", curr);
 	}
-	pthread_mutex_lock(&countMutex);
-	if(currInt < sqrt(NROF_SIEVE)){ //Now all integers are tried, not just primes. This is not necessary, but unavoidable?
-		createNewThread(++currInt);
-	}
-	pthread_mutex_unlock(&countMutex);
+	//printf("Removed all multiples of %d from the list\n", i);
 	return(NULL);
 }
 
 void printAll(){
 	unsigned long i;
-	for(i = 2; i < NROF_SIEVE; i++){
+	for(i = 2; i <= NROF_SIEVE; i++){
 		if(checkBuffer(i)){
 			printf("%lu\n", i);
 		}
@@ -151,7 +142,9 @@ bool checkBuffer(unsigned long i){
 	//printf("Buffer index is %lu\n", location);
 	unsigned long index = i % 64;
 	//printf("Index in the long long is %lu\n", index);
+	pthread_mutex_lock(&mutex[location]);
 	unsigned long long data = buffer[location];
+	pthread_mutex_unlock(&mutex[location]);
 	//printf("The long long is %llu\n", data);
 	data &= (unsigned long long)(1ULL << index);
 	//printf("The mask is %llu\n",(unsigned long long)(1ULL<<index));
