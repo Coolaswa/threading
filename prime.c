@@ -5,11 +5,6 @@
  * Michiel Favier (0951737)
  * Diederik de Wit (0829667)
  *
- * Grading:
- * Students who hand in clean code that fully satisfies the minimum requirements will get an 8. 
- * ”Extra” steps can lead to higher marks because we want students to take the initiative. 
- * Extra steps can be, for example, in the form of measurements added to your code, a formal 
- * analysis of deadlock freeness etc.
  */
  
 #include <stdio.h>
@@ -27,7 +22,7 @@ void * sieveOnce(void * j);
 void printAll();
 bool checkBuffer(unsigned long i);
 void createNewThread(int i, int threadNumber);
-void writeAll();
+//void writeAll();
 FILE *fp;
 
 pthread_mutex_t mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
@@ -36,10 +31,7 @@ pthread_t thread_id[NROF_THREADS];
 
 int main (void)
 {
-    // TODO: start threads generate all primes between 2 and NROF_SIEVE and output the results
-    // (see thread_malloc_free_test() and thread_mutex_test() how to use threads and mutexes,
-    //  see bit_test() how to manipulate bits in a large integer)
-
+ 	//Initialize all mutexes
 	int i;
 	for(i = 0; i < (NROF_SIEVE/64) + 1; i++) {
 		mutex[i] = mutexInitializer;
@@ -47,9 +39,9 @@ int main (void)
 	//Set all bits to 1
 	for(i=0; i < (NROF_SIEVE/64) + 1; i++){
 		buffer[i] = ~0ULL;
-		//printf("%llu\n", buffer[i]);
 	}
 
+	//Alternately place down chucks of NROF_THREADS amount of threads, and wait for them to finish.
 	unsigned long currInt = 2;
 	while(currInt < sqrt(NROF_SIEVE)){
 		int threadsPlaced = 0;
@@ -57,7 +49,6 @@ int main (void)
 			if(checkBuffer(currInt)){ // This rapidly becomes more efficient the more chunks have been processed, since the primes not found will become rarer
 				createNewThread(currInt, i);
 				threadsPlaced++;
-				//printf("Created new thread with integer %lu\n", currInt);
 			} else {
 				i--;
 			}
@@ -69,17 +60,14 @@ int main (void)
 				perror("Waiting for the thread resulted in an error");
 				exit(1);
 			}
-			//printf("Just ended a thread\n");
 		}
 	}
-	//printf("Calculation done, starting to read results\n");
 	printAll();
-	writeAll();
+	//writeAll();
     return (0);
 }
 
 void createNewThread(int i, int threadNumber){
-	//printf("Trying to create a new thread\n");
 	int * j = (int*)malloc(sizeof(int));
 	*j = i;
 	int newThread = pthread_create(&thread_id[threadNumber], NULL, sieveOnce, j);
@@ -90,26 +78,21 @@ void createNewThread(int i, int threadNumber){
 	return;
 }
 
+//The Thread
 void * sieveOnce(void * j){
 	int i = *((int*)j);
-	//printf("i is: %d\n",i);
 	free(j);
 	int curr;
 	for(curr = i * i; curr <= NROF_SIEVE; curr += i){
 		rsleep(100);
 		unsigned long location = curr / 64UL;
 		unsigned long index = curr % 64UL;
-		//printf("Sieving index is %lu\n", index);
 		unsigned long long mask = ~0ULL;
 		mask &= (unsigned long long)~(1ULL << index);
-		//printf("The index was set to %llu\n", (unsigned long long)(1 << index));
-		//printf("The mask was set to %llu\n", mask);
 		pthread_mutex_lock(&mutex[location]);
 		buffer[location] &= mask;
 		pthread_mutex_unlock(&mutex[location]);
-		//printf("Just removed %d from the list\n", curr);
 	}
-	//printf("Removed all multiples of %d from the list\n", i);
 	return(NULL);
 }
 
@@ -121,7 +104,7 @@ void printAll(){
 		}
 	}
 }
-
+/*
 void writeAll(){
 	fp = fopen("output.txt", "w");
 	unsigned long i;
@@ -131,9 +114,9 @@ void writeAll(){
 		}
 	}
 }
-
+*/
 /*
- * checkBuffer(int i)
+ * checkBuffer(unsigned long i)
  *
  * Returns if i is currently considered a prime number
  */
